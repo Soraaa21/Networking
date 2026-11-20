@@ -1,36 +1,20 @@
-from netmiko import ConnectHandler
-
-router_device = {
-    'device_type': 'cisco_ios_telnet',
-    'ip': '192.168.10.44',
-    'port': 32770,
-    'username': 'admin',
-    'password': 'eve123',
-    'secret': 'eve123',
-}
+from api import run_diagnostics
 
 
-try:
+def main():
     print("Connecting to router...")
-    net_connect = ConnectHandler(**router_device)
+    try:
+        results = run_diagnostics()
+    except RuntimeError as error:
+        print(error)
+        return
 
-
-    net_connect.enable()
-
-
-    commands_to_run = [
-        "show version",
-        "show ip interface brief",
-        "show running-config",
-    ]
-
-
-    for cmd in commands_to_run:
-        print(f"\n--- Output for: {cmd} ---")
-        output = net_connect.send_command(cmd)
+    for command, output in results.items():
+        print(f"\n--- Output for: {command} ---")
         print(output)
 
-    net_connect.disconnect()
     print("\nDisconnected successfully.")
-except Exception as e:
-    print(f"Connection failed: {e}")
+
+
+if __name__ == "__main__":
+    main()

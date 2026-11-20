@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101512">
+  <meta name="description" content="Router diagnostics and command output">
+  <title>Network Console</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #101512;
+      color: #eef4ef;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --muted: #9aa79d;
+      --line: #28332c;
+      --panel: #171e19;
+      --accent: #b7f36b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 82% 0%, rgba(119, 164, 83, .11), transparent 36rem),
+        #101512;
+    }
+
+    button { font: inherit; }
+
+    .shell { max-width: 1180px; margin: 0 auto; padding: 0 32px 64px; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 76px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid #3b4b3b;
+      border-radius: 10px;
+      color: var(--accent);
+      background: #1b261b;
+      font-size: 17px;
+    }
+
+    .environment { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    main { padding-top: 52px; }
+    .eyebrow { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+
+    .intro {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+
+    h1 { margin: 10px 0 8px; font-size: clamp(30px, 5vw, 42px); letter-spacing: -.045em; line-height: 1.08; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+    .connect-button {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #172011;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 750;
+      transition: background .18s ease, transform .18s ease;
+    }
+
+    .connect-button:hover { background: #c9ff83; transform: translateY(-1px); }
+    .connect-button:focus-visible { outline: 3px solid #eef4ef; outline-offset: 3px; }
+    .connect-button:disabled { cursor: wait; opacity: .7; transform: none; }
+    .button-icon { font-size: 17px; line-height: 1; }
+
+    .status-card, .metric, .result-card, .empty-state, .error-alert {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(23, 30, 25, .92);
+    }
+
+    .status-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 22px 24px;
+      margin-bottom: 14px;
+    }
+
+    .device-heading { display: flex; align-items: center; gap: 14px; }
+    .device-icon {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid #35443a;
+      border-radius: 11px;
+      background: #202a22;
+      color: var(--accent);
+      font-size: 20px;
+    }
+
+    .device-title { margin: 0 0 5px; font-size: 15px; font-weight: 650; }
+    .device-address { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    .connection-state { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .state-dot { width: 7px; height: 7px; border-radius: 50%; background: #78847a; }
+    .connection-state.is-online { color: #c9f398; }
+    .connection-state.is-online .state-dot { background: var(--accent); box-shadow: 0 0 12px rgba(183, 243, 107, .5); }
+
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 42px; }
+    .metric { min-height: 104px; padding: 18px 20px; }
+    .metric-label { color: var(--muted); font-size: 12px; }
+    .metric-value { margin-top: 12px; font-size: 17px; font-weight: 650; letter-spacing: -.02em; }
+    .metric-value code { color: #e7eee8; font-size: 15px; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .section-note { color: var(--muted); font-size: 12px; }
+
+    .empty-state { padding: 36px 24px; text-align: center; }
+    .empty-symbol { display: grid; width: 42px; height: 42px; place-items: center; margin: 0 auto 13px; border-radius: 12px; background: #202a22; color: var(--accent); font-size: 19px; }
+    .empty-state h3 { margin: 0 0 7px; font-size: 14px; }
+    .empty-state p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+    .results { display: grid; gap: 12px; }
+    .result-card { overflow: hidden; }
+    .result-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .result-heading h3 { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 600; }
+    .result-tag { color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+    pre { overflow-x: auto; margin: 0; padding: 18px; color: #c8d3ca; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .error-alert { margin: 0 0 20px; padding: 15px 18px; border-color: #71433d; background: #291c1a; color: #ffc2b8; font-size: 13px; line-height: 1.55; }
+
+    @media (max-width: 640px) {
+      .shell { padding: 0 18px 40px; }
+      .topbar { min-height: 66px; }
+      .environment { font-size: 10px; }
+      main { padding-top: 36px; }
+      .intro { align-items: flex-start; flex-direction: column; margin-bottom: 24px; }
+      .connect-button { width: 100%; }
+      .status-card { align-items: flex-start; flex-direction: column; gap: 15px; padding: 18px; }
+      .metrics { grid-template-columns: 1fr; gap: 10px; margin-bottom: 34px; }
+      .metric { min-height: auto; }
+      .metric-value { margin-top: 8px; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⌘</span><span>Network Console</span></div>
+      <span class="environment">Device dashboard</span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <div class="eyebrow">Overview</div>
+          <h1 id="page-title">Router status</h1>
+          <p class="subtitle">Run diagnostics and review the latest output from your device.</p>
+        </div>
+        <form id="diagnostics-form" method="post" action="{{ url_for('index') }}">
+          <button class="connect-button" type="submit">
+            <span class="button-icon" aria-hidden="true">↻</span>
+            <span class="button-label">Run diagnostics</span>
+          </button>
+        </form>
+      </section>
+
+      {% if error %}
+      <div class="error-alert" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <section class="status-card" aria-label="Router connection">
+        <div class="device-heading">
+          <span class="device-icon" aria-hidden="true">▤</span>
+          <div>
+            <h2 class="device-title">Cisco router</h2>
+            <div class="device-address">192.168.10.95&nbsp; · &nbsp;port 32770</div>
+          </div>
+        </div>
+        <div class="connection-state{% if results and not error %} is-online{% endif %}" aria-live="polite">
+          <span class="state-dot" aria-hidden="true"></span>
+          {% if error %}Connection failed{% elif results %}Diagnostics received{% else %}Ready to connect{% endif %}
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Device details">
+        <article class="metric">
+          <div class="metric-label">Connection</div>
+          <div class="metric-value">Telnet</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Port</div>
+          <div class="metric-value"><code>32770</code></div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Commands returned</div>
+          <div class="metric-value">{{ results|length if results else 0 }}</div>
+        </article>
+      </section>
+
+      <section aria-labelledby="results-title">
+        <div class="section-heading">
+          <h2 id="results-title">Command output</h2>
+          <span class="section-note">Results from the latest diagnostics run</span>
+        </div>
+        {% if results %}
+        <div class="results">
+          {% for command, output in results.items() %}
+          <article class="result-card">
+            <div class="result-heading">
+              <h3>{{ command }}</h3>
+              <span class="result-tag">Output</span>
+            </div>
+            <pre>{{ output }}</pre>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <span class="empty-symbol" aria-hidden="true">⌁</span>
+          <h3>No diagnostics yet</h3>
+          <p>Run diagnostics to fetch device details, interface status, and running configuration.</p>
+        </div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("diagnostics-form");
+    const button = form.querySelector("button");
+    const label = form.querySelector(".button-label");
+
+    form.addEventListener("submit", () => {
+      button.disabled = true;
+      label.textContent = "Connecting...";
+    });
+  </script>
+</body>
+</html>
